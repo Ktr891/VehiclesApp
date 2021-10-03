@@ -7,6 +7,7 @@ import 'package:vehicles_app/helpers/constans.dart';
 import 'package:vehicles_app/models/procedures.dart';
 import 'package:vehicles_app/models/token.dart';
 import 'package:http/http.dart' as http;
+import 'package:vehicles_app/screens/procesure_screen.dart';
 
 class ProceduresScreen extends StatefulWidget {
   final Token token;
@@ -124,7 +125,7 @@ class _ProceduresScreenState extends State<ProceduresScreen> {
         children: _procedures.map((e) {
           return Card(
             child: InkWell(
-              //onTap: () => _goEdit(e),
+              onTap: () => _goEdit(e),
               child: Container(
                 margin: EdgeInsets.all(10),
                 padding: EdgeInsets.all(5),
@@ -165,5 +166,29 @@ class _ProceduresScreenState extends State<ProceduresScreen> {
     );
   }
 
-  _goAdd() {}
+  _goAdd() async {
+    String? result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => ProcedureScreen(
+                  token: widget.token,
+                  procedure: Procedure(description: '', id: 0, price: 0),
+                )));
+    if (result == 'yes') {
+      _getProcedures();
+    }
+  }
+
+  void _goEdit(Procedure procedure) async {
+    String? result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => ProcedureScreen(
+                  token: widget.token,
+                  procedure: procedure,
+                )));
+    if (result == 'yes') {
+      _getProcedures();
+    }
+  }
 }
