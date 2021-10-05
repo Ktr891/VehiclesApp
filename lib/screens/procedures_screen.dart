@@ -1,13 +1,12 @@
-import 'dart:convert';
-
+import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:vehicles_app/components/loader_component.dart';
-import 'package:vehicles_app/helpers/constans.dart';
+import 'package:vehicles_app/helpers/api_helper.dart';
 import 'package:vehicles_app/models/procedures.dart';
+import 'package:vehicles_app/models/response.dart';
 import 'package:vehicles_app/models/token.dart';
-import 'package:http/http.dart' as http;
-import 'package:vehicles_app/screens/procesure_screen.dart';
+import 'package:vehicles_app/screens/procedure_screen.dart';
 
 class ProceduresScreen extends StatefulWidget {
   final Token token;
@@ -35,17 +34,12 @@ class _ProceduresScreenState extends State<ProceduresScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Procedimientos'),
-        /*actions: <Widget>[
+        actions: <Widget>[
           _isFiltered
-          ? IconButton(
-              onPressed: _removeFilter, 
-              icon: Icon(Icons.filter_none)
-            )
-          : IconButton(
-              onPressed: _showFilter, 
-              icon: Icon(Icons.filter_alt)
-            )
-        ],*/
+              ? IconButton(
+                  onPressed: _removeFilter, icon: Icon(Icons.filter_none))
+              : IconButton(onPressed: _showFilter, icon: Icon(Icons.filter_alt))
+        ],
       ),
       body: Center(
         child: _showLoader
@@ -64,26 +58,24 @@ class _ProceduresScreenState extends State<ProceduresScreen> {
       _showLoader = true;
     });
 
-    var url = Uri.parse('${Constans.apiUrl}/api/Procedures');
-    var response = await http.get(
-      url,
-      headers: {
-        'content-type': 'application/json',
-        'accept': 'application/json',
-        'authorization': 'bearer ${widget.token.token}',
-      },
-    );
+    Response response = await ApiHelper.getProcedures(widget.token.token);
     setState(() {
       _showLoader = false;
     });
-    var body = response.body;
-    var decodeJson = jsonDecode(body);
-    if (decodeJson != null) {
-      for (var item in decodeJson) {
-        _procedures.add(Procedure.fromJson(item));
-      }
+
+    if (!response.isSuccess) {
+      await showAlertDialog(
+          context: context,
+          title: 'Error',
+          message: 'Verifica que estes conectado a internet.',
+          actions: <AlertDialogAction>[
+            AlertDialogAction(key: null, label: 'Aceptar'),
+          ]);
+      return;
     }
-    print(_procedures);
+    setState(() {
+      _procedures = response.result;
+    });
     /*var connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult == ConnectivityResult.none) {
       setState(() {
@@ -190,5 +182,70 @@ class _ProceduresScreenState extends State<ProceduresScreen> {
     if (result == 'yes') {
       _getProcedures();
     }
+  }
+
+  void _removeFilter() {
+    setState(() {
+      _isFiltered = false;
+    });
+    _getProcedures();
+  }
+
+  void _showFilter() {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            title: Text('Filtrar Procedimientos'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text('Escriba las primeras letras del procedimiento'),
+                SizedBox(
+                  height: 10,
+                ),
+                TextField(
+                  autofocus: true,
+                  decoration: InputDecoration(
+                      hintText: 'Criterio de búsqueda...',
+                      labelText: 'Buscar',
+                      suffixIcon: Icon(Icons.search)),
+                  onChanged: (value) {
+                    _search = value;
+                  },
+                )
+              ],
+            ),
+            actions: <Widget>[
+              TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Cancelar')),
+              TextButton(onPressed: () => _filter(), child: Text('Filtrar')),
+            ],
+          );
+        });
+  }
+
+  void _filter() {
+    if (_search.isEmpty) {
+      return;
+    }
+
+    List<Procedure> filteredList = [];
+    for (var procedure in _procedures) {
+      if (procedure.description.toLowerCase().contains(_search.toLowerCase())) {
+        filteredList.add(procedure);
+      }
+    }
+
+    setState(() {
+      _procedures = filteredList;
+      _isFiltered = true;
+    });
+
+    Navigator.of(context).pop();
   }
 }
