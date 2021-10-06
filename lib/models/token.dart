@@ -16,7 +16,10 @@ class Token {
       fullName: '',
       id: '',
       userName: '',
-      phoneNumber: '');
+      email: '',
+      phoneNumber: '',
+      vehicles: [],
+      vehiclesCount: 0);
 
   Token({required this.token, required this.expiration, required this.user});
 
@@ -30,9 +33,7 @@ class Token {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['token'] = this.token;
     data['expiration'] = this.expiration;
-    if (this.user != null) {
-      data['user'] = this.user.toJson();
-    }
+    data['user'] = this.user.toJson();
     return data;
   }
 }
